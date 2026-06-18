@@ -1,0 +1,104 @@
+name: Build APK
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Wersja (np. v0.1)'
+        required: true
+        default: 'v0.1'
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install Flet
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Resolve version
+        id: ver
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "tag=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+            echo "build=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ inputs.version }}" >> $GITHUB_OUTPUT
+            echo "build=${TAG#v}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build APK
+        run: |
+          flet build apk \
+            --build-version "${{ steps.ver.outputs.build }}" \
+            --build-number 1 \
+            --verbose
+
+      - name: Locate and rename APK
+        id: apk
+        run: |
+          APK=$(find build -name "*.apk" | head -n1)
+          if [ -z "$APK" ]; then
+            echo "Nie znaleziono pliku APK"; ls -laR build || true; exit 1
+          fi
+          mkdir -p dist
+          cp "$APK" "dist/HomePulse-${{ steps.ver.outputs.tag }}.apk"
+          cp "$APK" "dist/HomePulse.apk"
+          ls -la dist/
+          echo "path=dist/HomePulse.apk" >> $GITHUB_OUTPUT
+
+      - name: Upload artifact (always)
+        uses: actions/upload-artifact@v4
+        with:
+          name: HomePulse-apk
+          path: dist/*.apk
+          retention-days: 30
+
+      - name: Create / update GitHub Release
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/HomePulse.apk
+            dist/HomePulse-${{ steps.ver.outputs.tag }}.apk
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: HomePulse ${{ steps.ver.outputs.tag }}
+          body: |
+            Automatyczny build APK dla HomePulse.
+
+            **Instalacja na Androidzie:**
+            1. Pobierz `HomePulse.apk` z assetów poniżej.
+            2. Otwórz pobrany plik na telefonie.
+            3. Zezwól na instalację z nieznanego źródła (jednorazowo).
+            4. Zainstaluj i uruchom z szuflady aplikacji.
+
+            > Apka nie jest podpisana certyfikatem Google Play, więc Play Protect może wyświetlić ostrzeżenie — kliknij *Mimo to zainstaluj*.
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
