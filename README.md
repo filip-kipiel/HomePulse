@@ -4,11 +4,13 @@ Aplikacja inteligentnego domu (smart home) — projekt na kurs **Systemy Mobilne
 
 > Dom w standardzie *Mobile & Wireless* — przejście od sterowania stacjonarnego (ścianowego) do pełnej mobilności na smartfonie.
 
-## Demo
+## Stack
 
-| Dom (dashboard) | Pokój | Sceny | Bezpieczeństwo |
-|:---:|:---:|:---:|:---:|
-| nagłówek z lokalizacją, szybkie sceny, kafle pokoi | toggle urządzeń + suwaki jasności / temperatury | 6 predefiniowanych scen | alarm, kamery, tryb prywatności, powiadomienia |
+- **React Native + Expo** (TypeScript)
+- React Navigation (bottom tabs + native stack)
+- Material Icons (`@expo/vector-icons`)
+- Linear gradients (`expo-linear-gradient`)
+- State: React Context (`AppStateProvider`)
 
 ## Funkcjonalność
 
@@ -25,7 +27,7 @@ HomePulse to **thick-client** (gruby klient) z warstwą **messaging** — zgodni
 
 | Warstwa | Komponenty |
 |---|---|
-| Klient | aplikacja Flet (Python → Flutter), lokalne przetwarzanie stanu, persystencja |
+| Klient | aplikacja React Native (natywne komponenty Android/iOS), lokalne przetwarzanie stanu |
 | Messaging | MQTT (store-and-forward), powiadomienia push *application-to-user* |
 | Infrastruktura | hub Zigbee (mesh), AP Wi-Fi, urządzenia BLE |
 
@@ -36,53 +38,58 @@ Wybór architektury thick-client jest uzasadniony:
 - bogate GUI z animacjami i dotykowymi gestami;
 - możliwość integracji z natywnymi API telefonu (NFC, lokalizacja, powiadomienia).
 
-## Stack
-
-- **Python 3.12** + [Flet](https://flet.dev/) (Flutter pod spodem, jeden kod → web / desktop / Android / iOS)
-- Brak innych zależności
-
-## Uruchomienie lokalne
+## Uruchomienie
 
 ```bash
-pip install -r requirements.txt
-python src/main.py
+npm install
+npm start
 ```
 
-Domyślnie otwiera się w okienku desktop. Aby uruchomić w przeglądarce:
+W terminalu pojawi się **kod QR**. Zeskanuj go:
+- **Android**: aplikacją **Expo Go** ([Google Play](https://play.google.com/store/apps/details?id=host.exp.exponent))
+- **iOS**: aparatem (oferuje otwarcie w Expo Go) lub **Expo Go** ([App Store](https://apps.apple.com/app/expo-go/id982107779))
+
+Aplikacja załaduje się na telefonie w ~5 sekund. **Wymaga, by telefon był w tej samej sieci Wi-Fi co komputer**.
+
+### Dostęp spoza Wi-Fi (np. dla znajomego)
 
 ```bash
-cd src && python -c "import flet as ft; from main import main; ft.app(target=main, view=ft.AppView.WEB_BROWSER, port=8550)"
+npm run tunnel
 ```
 
-## Build na Androida (APK)
+Uruchamia Expo z tunelem ngrok — wygenerowany URL działa z dowolnej sieci. Pierwsze uruchomienie może chwilę zająć (ngrok się inicjuje).
+
+### Web preview
 
 ```bash
-flet build apk
+npm run web
 ```
 
-Wymaga zainstalowanego Flutter SDK i Androida SDK — patrz [docs.flet.dev/getting-started/packaging](https://flet.dev/docs/publish/android).
+Otwiera aplikację w przeglądarce (bez natywnych komponentów, ale działa).
 
 ## Struktura
 
 ```
 HomePulse/
-├── pyproject.toml                # metadata + konfiguracja flet build
-├── requirements.txt
-├── README.md
-├── .github/workflows/build-apk.yml   # CI: tag v* → APK w Releases
+├── App.tsx                       # root: NavigationContainer + tab navigator
+├── index.ts                      # entry point (registerRootComponent)
+├── app.json                      # konfiguracja Expo
+├── package.json
+├── tsconfig.json
 └── src/
-    ├── main.py                   # punkt wejścia + routing widoków
-    └── homepulse/
-        ├── state.py              # model + stan (rooms, devices, scenes, notifications)
-        ├── theme.py              # paleta + Material 3 theme
-        ├── components/
-        │   └── device_card.py    # karta urządzenia z togglem i suwakiem
-        └── views/
-            ├── home_view.py      # dashboard
-            ├── room_view.py      # szczegóły pokoju
-            ├── scenes_view.py    # lista scen
-            ├── security_view.py  # alarm, kamery, log
-            └── settings_view.py  # sieci, użytkownik, architektura
+    ├── theme.ts                  # paleta + radius scale
+    ├── types.ts                  # interfejsy (Device, Room, Scene, ...)
+    ├── components/
+    │   └── DeviceCard.tsx        # karta urządzenia z togglem + level
+    ├── state/
+    │   ├── AppState.tsx          # Context Provider + hook useAppState
+    │   └── initial.ts            # seed: pokoje, sceny, sieci
+    └── screens/
+        ├── HomeScreen.tsx        # dashboard z pokojami i scenami
+        ├── RoomScreen.tsx        # szczegóły pokoju z urządzeniami
+        ├── ScenesScreen.tsx      # lista scen z opisami
+        ├── SecurityScreen.tsx    # alarm, kamery, log powiadomień
+        └── SettingsScreen.tsx    # sieci, profil, architektura
 ```
 
 ## Autor
