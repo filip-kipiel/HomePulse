@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "HomePulse",
+    "slug": "homepulse",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "pl.kipiel.homepulse"
+    },
+    "android": {
+      "package": "pl.kipiel.homepulse"
+    },
+    "primaryColor": "#1E2761"
+  }
+}
