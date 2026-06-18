@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Wersja (np. v0.1)'
+        description: 'Wersja (np. v0.2)'
         required: true
-        default: 'v0.1'
+        default: 'v0.2'
 
 jobs:
   build-apk:
@@ -42,46 +42,87 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Diagnostics
+        run: |
+          echo "::group::flet version"
+          flet --version || true
+          echo "::endgroup::"
+          echo "::group::flutter doctor"
+          flutter --version
+          flutter doctor -v || true
+          echo "::endgroup::"
+          echo "::group::repo layout"
+          ls -la
+          echo "--- src/ ---"
+          ls -la src || true
+          echo "::endgroup::"
+          echo "::group::pyproject.toml"
+          cat pyproject.toml
+          echo "::endgroup::"
+
       - name: Resolve version
         id: ver
         run: |
           if [ "${{ github.event_name }}" = "push" ]; then
-            echo "tag=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
-            echo "build=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+            TAG="${GITHUB_REF_NAME}"
           else
-            echo "tag=${{ inputs.version }}" >> $GITHUB_OUTPUT
-            echo "build=${TAG#v}" >> $GITHUB_OUTPUT
+            TAG="${{ inputs.version }}"
           fi
+          BUILD="${TAG#v}"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "build=$BUILD" >> $GITHUB_OUTPUT
+          echo "Resolved tag=$TAG build=$BUILD"
 
       - name: Build APK
         run: |
           flet build apk \
+            --project HomePulse \
+            --product HomePulse \
+            --org pl.kipiel \
             --build-version "${{ steps.ver.outputs.build }}" \
             --build-number 1 \
             --verbose
 
+      - name: Dump build directory on failure
+        if: failure()
+        run: |
+          echo "::group::build/ tree"
+          find build -maxdepth 4 -type d 2>/dev/null || true
+          echo "::endgroup::"
+          echo "::group::any .apk files anywhere"
+          find . -name "*.apk" 2>/dev/null || true
+          echo "::endgroup::"
+          echo "::group::flutter logs (if any)"
+          ls -la build/flutter/ 2>/dev/null || true
+          echo "::endgroup::"
+
       - name: Locate and rename APK
+        if: success()
         id: apk
         run: |
           APK=$(find build -name "*.apk" | head -n1)
           if [ -z "$APK" ]; then
-            echo "Nie znaleziono pliku APK"; ls -laR build || true; exit 1
+            echo "::error::Nie znaleziono pliku APK"
+            find build -maxdepth 5 -type f 2>/dev/null | head -100
+            exit 1
           fi
+          echo "Znaleziono APK: $APK"
           mkdir -p dist
           cp "$APK" "dist/HomePulse-${{ steps.ver.outputs.tag }}.apk"
           cp "$APK" "dist/HomePulse.apk"
           ls -la dist/
-          echo "path=dist/HomePulse.apk" >> $GITHUB_OUTPUT
 
       - name: Upload artifact (always)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: HomePulse-apk
           path: dist/*.apk
+          if-no-files-found: ignore
           retention-days: 30
 
       - name: Create / update GitHub Release
-        if: github.event_name == 'push'
+        if: success() && github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
           files: |

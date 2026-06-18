@@ -45,13 +45,13 @@ Wybór architektury thick-client jest uzasadniony:
 
 ```bash
 pip install -r requirements.txt
-python main.py
+python src/main.py
 ```
 
 Domyślnie otwiera się w okienku desktop. Aby uruchomić w przeglądarce:
 
 ```bash
-python -c "import flet as ft; from main import main; ft.app(target=main, view=ft.AppView.WEB_BROWSER, port=8550)"
+cd src && python -c "import flet as ft; from main import main; ft.app(target=main, view=ft.AppView.WEB_BROWSER, port=8550)"
 ```
 
 ## Build na Androida (APK)
@@ -66,20 +66,23 @@ Wymaga zainstalowanego Flutter SDK i Androida SDK — patrz [docs.flet.dev/getti
 
 ```
 HomePulse/
-├── main.py                       # punkt wejścia + routing widoków
+├── pyproject.toml                # metadata + konfiguracja flet build
 ├── requirements.txt
 ├── README.md
-└── homepulse/
-    ├── state.py                  # model + stan aplikacji (rooms, devices, scenes, notifications)
-    ├── theme.py                  # paleta + Material 3 theme
-    ├── components/
-    │   └── device_card.py        # karta urządzenia z togglem i suwakiem
-    └── views/
-        ├── home_view.py          # dashboard
-        ├── room_view.py          # szczegóły pokoju
-        ├── scenes_view.py        # lista scen
-        ├── security_view.py      # alarm, kamery, log
-        └── settings_view.py      # sieci, użytkownik, architektura
+├── .github/workflows/build-apk.yml   # CI: tag v* → APK w Releases
+└── src/
+    ├── main.py                   # punkt wejścia + routing widoków
+    └── homepulse/
+        ├── state.py              # model + stan (rooms, devices, scenes, notifications)
+        ├── theme.py              # paleta + Material 3 theme
+        ├── components/
+        │   └── device_card.py    # karta urządzenia z togglem i suwakiem
+        └── views/
+            ├── home_view.py      # dashboard
+            ├── room_view.py      # szczegóły pokoju
+            ├── scenes_view.py    # lista scen
+            ├── security_view.py  # alarm, kamery, log
+            └── settings_view.py  # sieci, użytkownik, architektura
 ```
 
 ## Autor
