@@ -74,27 +74,46 @@ jobs:
           echo "Resolved tag=$TAG build=$BUILD"
 
       - name: Build APK
+        env:
+          FLET_CLI_NO_RICH_OUTPUT: '1'
+          FLET_CLI_SKIP_FLUTTER_DOCTOR: '1'
         run: |
-          flet build apk \
-            --project HomePulse \
-            --product HomePulse \
-            --org pl.kipiel \
-            --build-version "${{ steps.ver.outputs.build }}" \
+          set -x
+          flet build apk src \
+            --build-version ${{ steps.ver.outputs.build }} \
             --build-number 1 \
-            --verbose
+            --yes \
+            -vv 2>&1 | tee build-apk.log
+          BUILD_EXIT=${PIPESTATUS[0]}
+          echo "::group::tail of build-apk.log"
+          tail -n 200 build-apk.log
+          echo "::endgroup::"
+          exit $BUILD_EXIT
 
-      - name: Dump build directory on failure
+      - name: Dump build directory + log on failure
         if: failure()
         run: |
+          echo "::group::build-apk.log (full)"
+          cat build-apk.log 2>/dev/null || echo "no build-apk.log"
+          echo "::endgroup::"
           echo "::group::build/ tree"
           find build -maxdepth 4 -type d 2>/dev/null || true
           echo "::endgroup::"
           echo "::group::any .apk files anywhere"
           find . -name "*.apk" 2>/dev/null || true
           echo "::endgroup::"
-          echo "::group::flutter logs (if any)"
-          ls -la build/flutter/ 2>/dev/null || true
+          echo "::group::flutter SDK"
+          ls -la "$(dirname $(which flutter))/.." 2>/dev/null || true
           echo "::endgroup::"
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-apk-log
+          path: build-apk.log
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Locate and rename APK
         if: success()
