@@ -67,6 +67,40 @@ npm run web
 
 Otwiera aplikację w przeglądarce (bez natywnych komponentów, ale działa).
 
+---
+
+## 👋 Dla osoby, której wysłano ten link
+
+Cześć! Jeśli dostałeś od Filipa link do tego repo, prawdopodobnie ma to być **demo aplikacji HomePulse na twoim telefonie**. Masz dwie opcje:
+
+### Opcja A — Filip odpalił apkę i wysłał ci QR
+
+Jeśli Filip puścił u siebie `npm run tunnel` i wysłał ci **screen z kodem QR** (np. przez Messengera/WhatsAppa):
+
+1. Zainstaluj **Expo Go** na telefonie:
+   - 🤖 Android: [Google Play](https://play.google.com/store/apps/details?id=host.exp.exponent)
+   - 🍎 iOS: [App Store](https://apps.apple.com/app/expo-go/id982107779)
+2. Otwórz **Expo Go** → przycisk **"Scan QR code"** (Android) lub aparat (iOS).
+3. Zeskanuj QR z drugiego telefonu / monitora Filipa.
+4. Czekaj ~10–30 sekund — aplikacja kompiluje się "w locie" i ładuje. Dalej działa natywnie.
+
+Wymaga aktywnego Internetu (przesyła JS bundle przez tunel ngrok). Działa z dowolnej sieci.
+
+### Opcja B — Uruchom u siebie z repo
+
+Jeśli wolisz sam się pobawić kodem (i masz Node 18+):
+
+```bash
+git clone https://github.com/filip-kipiel/HomePulse.git
+cd HomePulse
+npm install
+npm start
+```
+
+Pojawi się QR — zeskanuj Expo Go (zob. Opcja A pkt 1–3).
+
+---
+
 ## Struktura
 
 ```
